@@ -21,3 +21,12 @@
 *.i*86
 *.x86_64
 *.hex
+Simulacion_&_PCB/Datv3.0.LYT
+Simulacion_&_PCB/v3.0.PWI
+*.err
+*.esym
+*.lst
+*.sta
+*.sym
+*.tre
+stino.settings

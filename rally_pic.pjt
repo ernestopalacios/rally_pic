@@ -45,3 +45,7 @@ AdditionalOptionString=
 Link=0
 Count=1
 1=rally_pic.c
+[Opened Files]
+1=rally_pic.c
+2=ds1307.c
+3=

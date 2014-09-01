@@ -1,10 +1,10 @@
 /**********************************************\
  *       Kradac Robotics & Electronics        *
  *                                            *
- *  Proyecto:     Sensor  UTPL                *
- *  Programador:  Hugo Ramirez  & Ernesto P   *
- *  version:      1.0.1                       *
- *  Fecha:        10/06/2014                  *
+ *  Proyecto:     Reloj Rally                 *
+ *  Programador:  Ernesto P                   *
+ *  version:      0.0.1                       *
+ *  Fecha:        31/08/2014                  *
  *                                            *
  **********************************************
  *
@@ -30,45 +30,90 @@
 //#use RS232(baud=9600,parity=N,xmit=PIN_C6,rcv=PIN_C7,bits=8,STREAM=COM_INT)//Puerto soft skypatrol
 
 
-#define NUM_BUFF_SERIAL  250
+#define SZ_BUF_SER_0  250       // TamañoBuffer para el Skypatrol
+#define SZ_BUF_SER_1  250      //  Buffer para comunicacion con Arduino
 
 // VARIABLES GLOBALES
 
-   unsigned int bufferSerial[ NUM_BUFF_SERIAL ];
-   int i_serial,i_timer, yr, month, day, hrs, min, sec, dow;
+   // Inicializacion de los buffer para comunicacion serial
+    //
+      // Buffer Serial 0 - Hardware
+      char bufferSerial_0[ SZ_BUF_SER_0 ];
+      
+      #if SZ_BUF_SER_0 > 255
+         unsigned long i_ser_0 = 0;
+      #else
+         unsigned int i_ser_0;
+
+      unsigned int serial_0_overflow = 0;
+
+
+      // Buffer Serial 1 - Software
+      char bufferSerial_1[ SZ_BUF_SER_1 ];
+      
+      #if SZ_BUF_SER_1 > 255
+         unsigned long i_ser_1 = 0;
+      #else
+         unsigned int i_ser_1;
+
+      unsigned int serial_1_overflow = 0;
+   
+   
+   int i_timer;
+   int yr;
+   int month;
+   int day;
+   int hrs;
+   int min;
+   int sec;
+   int dow;
+   
    long valor, valor1;
 
 
+/**
+ * @brief Manejo de Interrupcion serial
+ * @details Coloca los caracteres que llegan al puerto serial
+ * en un arreglo de caracteres, si el mensaje enviado supera
+ * el tamano del buffer se pone en alto la bandera: 
+ * serial_0_overflow = 1;
+ */
+#INT_RDA 
+   void rda_isr()
+   {
+      if ( kbhit( COM_INT ) )
+      {
+         bufferSerial_0[ i_ser_0++ ] = fgetc( COM_INT );
 
+         //Deja siempre un Byte de terminacion del buffer 0x00
+         if( ++i_ser_0 == SZ_BUF_SER_0 ) 
+         {
+            i_ser_0 = 0;
+            serial_0_overflow = 1;  // Se desbordo el Serial_0  COM_INT
+         }
+      }
+   }
 
 void main(void)
 {
-   enable_interrupts( GLOBAL );
-   setup_adc(ADC_CLOCK_INTERNAL);
-   yr=month=day=hrs=min=sec=valor=valor1=0;
    
-   setup_adc(ADC_CLOCK_INTERNAL);
+   enable_interrupts( GLOBAL );
+   enable_interrupts( INT_RDA );
+   enable_interrupts( INT_TIMER0 );
+   // ENABLE WDT
    ds1307_init();
 
    while(1)
    {
-      ds1307_get_date (day, month, yr, dow);  /// se obtiene la fecha
+        //ds1307_get_date (day, month, yr, dow);  // se obtiene la fecha
       ds1307_get_time (hrs, min, sec);
       
       output_high(PIN_C1);
       delay_ms(500);
       output_low(PIN_C1);
-      delay_ms(50000);     // Retardo de 50seg
       
-      setup_adc_ports(AN0);   //Solo el canal 0
-      set_adc_channel(0);
-      set_adc_channel(1);
+      fprintf(COM_INT, "%d:%d:%d\n",hrs,min,sec );
       
-      valor=read_adc();
-      valor1=read_adc();
-      
-      fprintf(COM_int,"AT$MSGSND=4,\"");
-      fprintf(COM_int, "#PT02,%d%d%d,%d%d%d,%Lu,%Lu,000,000,000,000,000,000,999$\"\n\r", yr,month, day, hrs, min, sec, valor, valor1);
    }
 }
 
